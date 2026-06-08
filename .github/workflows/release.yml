@@ -21,8 +21,6 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
-      - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Cache Gradle (incl. loom/Minecraft)
         uses: actions/cache@v4
         with:
@@ -32,8 +30,15 @@ jobs:
           key: gradle-loom-${{ runner.os }}-${{ hashFiles('**/*.gradle') }}
           restore-keys: gradle-loom-${{ runner.os }}-
 
-      - name: Build mod jar
-        run: nix develop -c ./gradlew :mod:build --console=plain --stacktrace
+      # wasi-sdk + gradle distribution + loom's Minecraft are GitHub-release
+      # downloads that occasionally 504; retry to ride out transient incidents.
+      - name: Build mod jar (retry transient 504s)
+        run: |
+          for i in 1 2 3 4 5; do
+            nix develop -c ./gradlew :mod:build --console=plain --stacktrace && exit 0
+            echo "::warning::mod build attempt $i failed; retrying in 30s"; sleep 30
+          done
+          exit 1
 
       - name: Stage versioned jar
         run: |

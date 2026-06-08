@@ -18,8 +18,6 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
-      - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -30,13 +28,29 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # Build the wasm test fixtures + sqlite (wasi-sdk lives in the devshell).
-      - name: Build wasm fixtures
-        run: nix develop -c make resources
+      # The first nix-develop realizes wasi-sdk (a GitHub-release download) and the
+      # gradle wrapper distribution — both occasionally 504 from GitHub's CDN, so
+      # retry to ride out transient incidents.
+      - name: Warm toolchain (wasi-sdk + gradle), retrying transient 504s
+        run: |
+          for i in 1 2 3 4 5; do
+            nix develop -c ./gradlew --version && exit 0
+            echo "::warning::warm-up attempt $i failed (transient download?); retrying in 30s"
+            sleep 30
+          done
+          exit 1
 
-      # The full engine suite: raw WebAssembly API (spike), sqlite-via-raw-API,
-      # fs cap, http cap, auto-stub, and the module resolver. ffmpeg is fetched
-      # from the artifact URL when WASM_CC_FFMPEG_URL is set (see ffmpeg IT).
+      # Build the wasm test fixtures + sqlite + dr_mp3 (downloads sqlite/dr_mp3).
+      - name: Build wasm fixtures
+        run: |
+          for i in 1 2 3; do
+            nix develop -c make resources && exit 0
+            echo "::warning::fixtures attempt $i failed; retrying in 20s"; sleep 20
+          done
+          exit 1
+
+      # Raw WebAssembly API (spike), sqlite-via-raw-API, fs + http caps, auto-stub,
+      # module resolver, and a real mp3 decode (dr_mp3) — 11 tests.
       - name: Engine tests
         run: nix develop -c ./gradlew :engine:test --console=plain --stacktrace
 
@@ -55,8 +69,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
-      - name: Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Cache Gradle (incl. loom/Minecraft)
         uses: actions/cache@v4
         with:
@@ -65,10 +77,15 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-loom-${{ runner.os }}-${{ hashFiles('**/*.gradle') }}
           restore-keys: gradle-loom-${{ runner.os }}-
-      # Loom downloads Minecraft + mappings + CC:Tweaked on first run (slow,
-      # cached thereafter). Builds the shaded engine jar nested into the mod jar.
-      - name: Build mod jar
-        run: nix develop -c ./gradlew :mod:build --console=plain --stacktrace
+      # Loom downloads Minecraft + mappings + CC:Tweaked on first run (slow, cached
+      # thereafter). Retry rides out transient GitHub-release 504s (wasi-sdk/gradle).
+      - name: Build mod jar (retry transient 504s)
+        run: |
+          for i in 1 2 3; do
+            nix develop -c ./gradlew :mod:build --console=plain --stacktrace && exit 0
+            echo "::warning::mod build attempt $i failed; retrying in 30s"; sleep 30
+          done
+          exit 1
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
         with:
