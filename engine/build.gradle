@@ -1,0 +1,67 @@
+plugins {
+    id 'java-library'
+    // gradleup is the maintained fork of johnrengelman/shadow (the original is
+    // abandoned and breaks on Gradle 9). See picat-cc for the full rationale.
+    id 'com.gradleup.shadow' version '9.4.2'
+}
+
+// Consumed by Loom when it auto-generates the nested-jar fabric.mod.json for this
+// (non-mod) library; must be valid semver.
+version = '0.1.0'
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+repositories { mavenCentral() }
+
+dependencies {
+    api 'com.dylibso.chicory:runtime:1.7.5'
+    api 'com.dylibso.chicory:wasi:1.7.5'
+    api 'com.dylibso.chicory:compiler:1.7.5'
+    implementation 'com.google.jimfs:jimfs:1.3.0'
+    // gson / guava / icu4j are provided UNRELOCATED by Minecraft at runtime, so
+    // they are compileOnly here and excluded from the shaded jar; tests pull them
+    // from the test classpath.
+    compileOnly 'com.google.code.gson:gson:2.11.0'
+    testImplementation 'com.google.code.gson:gson:2.11.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+    // Integration tests fetch ffmpeg.wasm from the artifact server; opt in via env
+    // so unit runs stay offline. Surface test stdout for the long IT logs.
+    testLogging { showStandardStreams = true; exceptionFormat = 'full' }
+}
+
+// ---------------------------------------------------------------------------
+// Shaded jar: engine + its full runtime closure (chicory runtime/wasi/compiler/
+// wasm/log + asm + jimfs) with org.objectweb.asm relocated to a private package
+// so it never collides with Mixin/MixinExtras's ASM on the Fabric knot loader.
+// See picat-cc/engine/build.gradle for the full incident write-up.
+// gson/guava/icu4j are NOT shaded (MC ships them unrelocated).
+// ---------------------------------------------------------------------------
+shadowJar {
+    archiveClassifier = 'shaded'
+    configurations = [project.configurations.runtimeClasspath]
+    relocate 'org.objectweb.asm', 'cc.wasmcc.shadow.asm'
+    dependencies {
+        exclude(dependency('com.google.guava:.*'))
+        exclude(dependency('com.google.code.gson:.*'))
+        exclude(dependency('com.google.code.findbugs:.*'))
+        exclude(dependency('org.checkerframework:.*'))
+        exclude(dependency('com.google.errorprone:.*'))
+        exclude(dependency('com.google.j2objc:.*'))
+        exclude(dependency('com.ibm.icu:.*'))
+    }
+}
+
+configurations {
+    shadedArtifact {
+        canBeConsumed = true
+        canBeResolved = false
+    }
+}
+artifacts {
+    shadedArtifact(tasks.named('shadowJar'))
+}

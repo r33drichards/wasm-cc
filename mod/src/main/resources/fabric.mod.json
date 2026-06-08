@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "wasm-cc",
+  "version": "0.1.0",
+  "name": "WASM for ComputerCraft",
+  "description": "Run arbitrary WebAssembly modules from CC computers: a raw WebAssembly API (compile/instantiate/exports/memory) over the Chicory pure-JVM runtime, with imports served by Java capability packs (WASI stubs, the computer's filesystem, and http).",
+  "license": "MPL-2.0",
+  "environment": "*",
+  "entrypoints": { "main": ["cc.wasmcc.mod.WasmCcMod"] },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~1.21.8",
+    "computercraft": "*"
+  }
+}

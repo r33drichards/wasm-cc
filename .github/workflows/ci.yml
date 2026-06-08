@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine-test:
+    name: Engine tests (raw API, sqlite, fs, http, auto-stub)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # Build the wasm test fixtures + sqlite (wasi-sdk lives in the devshell).
+      - name: Build wasm fixtures
+        run: nix develop -c make resources
+
+      # The full engine suite: raw WebAssembly API (spike), sqlite-via-raw-API,
+      # fs cap, http cap, auto-stub, and the module resolver. ffmpeg is fetched
+      # from the artifact URL when WASM_CC_FFMPEG_URL is set (see ffmpeg IT).
+      - name: Engine tests
+        run: nix develop -c ./gradlew :engine:test --console=plain --stacktrace
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-test-report
+          path: engine/build/reports/tests/test
+          if-no-files-found: ignore
+
+  mod-build:
+    name: Fabric mod jar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Cache Gradle (incl. loom/Minecraft)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-loom-${{ runner.os }}-${{ hashFiles('**/*.gradle') }}
+          restore-keys: gradle-loom-${{ runner.os }}-
+      # Loom downloads Minecraft + mappings + CC:Tweaked on first run (slow,
+      # cached thereafter). Builds the shaded engine jar nested into the mod jar.
+      - name: Build mod jar
+        run: nix develop -c ./gradlew :mod:build --console=plain --stacktrace
+      - name: Upload mod jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-cc-mod
+          path: mod/build/libs/*.jar
+          if-no-files-found: error

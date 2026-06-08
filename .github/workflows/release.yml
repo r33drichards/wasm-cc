@@ -1,0 +1,49 @@
+name: Release
+
+# Tag a release (e.g. `git tag v0.1.0 && git push --tags`) to build the Fabric mod
+# jar and publish it as a GitHub Release asset. The asset URL
+#   https://github.com/<owner>/wasm-cc/releases/download/<tag>/wasm-cc-<tag>.jar
+# is a direct .jar link, so itzg/docker-minecraft-server's MODS= can fetch it.
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build + publish mod jar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Cache Gradle (incl. loom/Minecraft)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-loom-${{ runner.os }}-${{ hashFiles('**/*.gradle') }}
+          restore-keys: gradle-loom-${{ runner.os }}-
+
+      - name: Build mod jar
+        run: nix develop -c ./gradlew :mod:build --console=plain --stacktrace
+
+      - name: Stage versioned jar
+        run: |
+          mkdir -p dist
+          cp mod/build/libs/mod.jar "dist/wasm-cc-${GITHUB_REF_NAME}.jar"
+          ls -la dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/wasm-cc-*.jar
+          generate_release_notes: true
+          fail_on_unmatched_files: true
