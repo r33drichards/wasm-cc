@@ -69,6 +69,72 @@ if ok then print(res.exit, res.stdout) end                 -- then read song.wav
 computer's disk to mount at `/`), `args` (argv), `env` (table), `timeout` (seconds,
 mode B).
 
+## Examples
+
+Runnable scripts live in [`examples/`](examples) (`sqlite.lua`, `decode.lua`,
+`fetch.lua`).
+
+### Networking (the `http` cap)
+
+A module's networking "comes from" the host: its `http` import is implemented in
+Java and gated by the server's allowlist (`wasm-cc.json` → `httpAllow`, mirroring
+CC's http policy). Build a module against the import and run it off-thread (mode B)
+so a slow request never stalls the tick:
+
+```c
+// guest side (compile to wasm32-wasi, place in <config>/wasm-modules/fetcher.wasm)
+__attribute__((import_module("http"), import_name("get")))
+extern int  http_get(const char *url, int len);   // -> body len | -1 denied | -2 error
+__attribute__((import_module("http"), import_name("read")))
+extern int  http_read(char *dst, int cap);        // copies body into dst
+```
+
+```lua
+-- CC side
+local ok, res = wasm.run("fetcher", {
+  caps    = { "wasi", "http" },
+  args    = { "fetcher", "https://api.example.com/status.json" },
+  timeout = 30,
+})
+if ok then
+  print(res.stdout)              -- the fetcher prints the body it received
+else
+  printError(res)                -- "busy: ...", "timeout", or a module error (-1 = host denied)
+end
+```
+
+Allow the host in `wasm-cc.json`: `"httpAllow": ["api.example.com", "*.example.com"]`
+(empty list denies all; `"*"` allows anything).
+
+### Convert an MP3 to MIDI, then play it on a speaker
+
+Chain two modules over the computer's disk (mode B, `fs` cap): the shipped
+`mp3dec` (MP3 → WAV), then a `wav2midi` module you provide (WAV → MIDI, e.g. a
+pitch-transcription library compiled to `wasm32-wasi`). Put `song.mp3` in the
+computer's `media` folder and a speaker on its side:
+
+```lua
+local function run(mod, ...)
+  local ok, res = wasm.run(mod, { args = { mod, ... }, fs = "media", timeout = 120 })
+  assert(ok and res.exit == 0, mod .. " failed: " .. tostring(ok and res.stderr or res))
+end
+
+run("mp3dec",   "/song.mp3", "/song.wav")   -- decode (real codec, dr_mp3)
+run("wav2midi", "/song.wav", "/song.mid")   -- transcribe WAV -> MIDI
+
+-- Read the .mid back and play its note events on an attached CC speaker.
+local f = fs.open("media/song.mid", "rb"); local midi = f.readAll(); f.close()
+local speaker = peripheral.find("speaker")
+for _, ev in ipairs(parseMidiNotes(midi)) do      -- your tiny MIDI reader
+  speaker.playNote(ev.instrument, ev.volume, ev.pitch)
+  sleep(ev.dt)
+end
+```
+
+The conversion is just compute — `wasm-cc` runs the module against the computer's
+real files and hands you the `.mid`; what you do with it (speaker, disk drive,
+rednet) is ordinary ComputerCraft.
+
 ## Building
 
 Uses Nix for the toolchain (JDK 21, Gradle, wasi-sdk 25):
