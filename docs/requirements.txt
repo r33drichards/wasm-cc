@@ -1,0 +1,5 @@
+# Pinned dependencies for building the MkDocs documentation site.
+#   pip install -r docs/requirements.txt
+# Used by .github/workflows/docs.yml and the Nix `docs` dev shell as a reference.
+mkdocs-material==9.5.39
+mkdocs==1.6.1

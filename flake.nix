@@ -38,6 +38,8 @@
               cp -r . $out/
             '';
           };
+          # python3 + mkdocs-material build the documentation site (docs/, mkdocs.yml).
+          docsEnv = pkgs.python3.withPackages (ps: [ ps.mkdocs-material ]);
         in {
           default = pkgs.mkShell {
             # jdk21 + gradle build the engine/mod; make/curl/unzip/wabt build the
@@ -47,6 +49,13 @@
                          pkgs.wabt pkgs.sox pkgs.lame ];
             WASI_SDK_PATH = "${wasiSdk}";
             JAVA_HOME = "${pkgs.jdk21}";
+          };
+
+          # The MkDocs (Material) documentation toolchain. Build/preview the site:
+          #   nix develop .#docs -c mkdocs serve
+          #   nix develop .#docs -c mkdocs build --strict
+          docs = pkgs.mkShell {
+            packages = [ docsEnv ];
           };
         });
     };
