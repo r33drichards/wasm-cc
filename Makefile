@@ -16,9 +16,16 @@ SQLITE_URL = https://www.sqlite.org/2024/sqlite-amalgamation-$(SQLITE_VER).zip
 
 DRMP3_URL = https://raw.githubusercontent.com/mackron/dr_libs/da35f9d6c7374a95353fd1df1d394d44ab66cf01/dr_mp3.h
 
-.PHONY: resources fixtures sqlite mp3 clean
+.PHONY: resources fixtures sqlite mp3 clean e2e-setup
 
 resources: fixtures sqlite mp3
+
+# --- e2e harness ----------------------------------------------------------
+# Stage the built mod jar + sqlite3.wasm + config into e2e/data so the docker
+# compose server (see e2e/README.md) can load them. Build the inputs first:
+#   nix develop -c ./gradlew :mod:build   &&   nix develop -c make resources
+e2e-setup:
+	bash e2e/setup.sh
 
 # --- tiny fixtures (raw-API spike + fs-cap command + auto-stub + http) ----
 fixtures: $(TESTRES)/spike.wasm $(TESTRES)/copy.wasm $(TESTRES)/stub.wasm $(TESTRES)/httpget.wasm

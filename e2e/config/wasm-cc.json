@@ -1,0 +1,12 @@
+{
+  "workerThreads": 6,
+  "maxAbandonedJobs": 32,
+  "maxTimeoutSeconds": 300,
+  "maxJobsPerComputer": 8,
+  "maxInstancesPerComputer": 16,
+  "modulesDir": "wasm-modules",
+  "allowUrlModules": false,
+  "maxModuleBytes": 67108864,
+  "defaultCaps": ["wasi"],
+  "httpAllow": []
+}

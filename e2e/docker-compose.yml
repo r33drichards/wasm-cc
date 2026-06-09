@@ -1,0 +1,56 @@
+# Minimal end-to-end harness for wasm-cc: a Minecraft 1.21.8 Fabric server with
+# CC:Tweaked + the locally built wasm-cc mod, so you can drive on-disk SQLite from
+# Lua and inspect the resulting .sqlite file on the host.
+#
+# Everything the server reads lives under ./data (bind-mounted to /data), which is
+# pre-seeded by `setup.sh` (run `make e2e-setup` from the repo root):
+#   ./data/mods/wasm-cc.jar                       <- mod/build/libs/mod.jar
+#   ./data/config/wasm-cc.json                    <- e2e/config/wasm-cc.json
+#   ./data/config/wasm-modules/sqlite3.wasm       <- engine .../modules/sqlite3.wasm
+# and at runtime the world (incl. the on-disk sqlite file) appears at:
+#   ./data/world/computercraft/computer/<id>/sql/app.sqlite
+#
+# CC:Tweaked (+ Fabric API and required deps) are fetched from Modrinth by itzg.
+
+services:
+  mc:
+    image: itzg/minecraft-server:java21
+    container_name: wasm-cc-e2e
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      TYPE: "FABRIC"
+      VERSION: "1.21.8"
+      MEMORY: "2G"
+
+      # CC:Tweaked + Fabric API from Modrinth; pull required transitive deps so
+      # the loader matches the wasm-cc mod's needs (fabricloader >= 0.19.3).
+      MODRINTH_PROJECTS: |
+        cc-tweaked
+        fabric-api
+      MODRINTH_DOWNLOAD_DEPENDENCIES: "required"
+
+      # The wasm-cc mod is bind-mounted in (see volumes below), not downloaded.
+      # To use a published GitHub Release instead, delete the ./data/mods bind
+      # mount and add, e.g.:
+      #   MODS: "https://github.com/r33drichards/wasm-cc/releases/download/v0.1.0/wasm-cc-v0.1.0.jar"
+
+      # Offline mode so any local client can join localhost without auth friction.
+      # A licensed client can still join; set ONLINE_MODE=TRUE to require auth.
+      ONLINE_MODE: "FALSE"
+      OVERRIDE_SERVER_PROPERTIES: "true"
+      DIFFICULTY: "peaceful"
+      MODE: "creative"
+      ALLOW_NETHER: "false"
+      SPAWN_PROTECTION: "0"
+      VIEW_DISTANCE: "8"
+
+    volumes:
+      # Whole server data dir on the host: world, mods, config all live here so
+      # the developer can inspect the on-disk sqlite file directly.
+      - ./data:/data
+
+    restart: "no"
