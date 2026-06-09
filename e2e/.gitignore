@@ -1,0 +1,3 @@
+# Runtime server data (world, downloaded mods, staged jars/wasm, config copy).
+# Everything here is produced by setup.sh + the running server; nothing committed.
+data/
