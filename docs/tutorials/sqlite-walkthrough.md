@@ -30,10 +30,25 @@ API plus `malloc`/`free`, so we can drive it directly.
 ## 2. Instantiate it
 
 ```lua
-local h = wasm.instantiate("sqlite3", { caps = { "wasi" } })
+local h = wasm.instantiate("file://sqlite3", { caps = { "wasi" } })
 ```
 
 SQLite is pure in-memory compute here, so the `wasi` capability is all it needs.
+
+!!! tip "Or pull it from a registry"
+    Instead of building and copying `sqlite3.wasm` yourself, you can let the host
+    pull a published, digest-verified build straight from an OCI registry:
+
+    ```lua
+    local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
+    ```
+
+    This needs `"allowOciModules": true` and `"ociRegistryAllow": ["ghcr.io"]` in
+    `wasm-cc.json`. The artifact is published by the release workflow (or
+    `make publish-sqlite`); the runnable [`examples/sqlite.lua`] uses this form.
+    See [Module references](../reference/lua-api.md#module-references).
+
+    [`examples/sqlite.lua`]: https://github.com/r33drichards/wasm-cc/blob/master/examples/sqlite.lua
 
 ## 3. The memory pattern
 

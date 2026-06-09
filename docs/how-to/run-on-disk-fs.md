@@ -18,7 +18,7 @@ sub-directory of the computer's own save directory at the guest's `/`.
 3. Call `wasm.run` with the `fs` cap and an `args` (argv) array:
 
 ```lua
-local ok, res = wasm.run("mp3dec", {
+local ok, res = wasm.run("file://mp3dec", {
   args    = { "mp3dec", "/song.mp3", "/song.wav" }, -- argv; "/" is the media mount
   fs      = "media",                                -- mount <computer>/media at "/"
   timeout = 30,                                     -- seconds

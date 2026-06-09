@@ -34,12 +34,14 @@ print(wasm.version())  --> 0.1.0
 ### `wasm.instantiate(ref [, opts])` → `handle`
 
 Compiles and instantiates a module **synchronously** and returns an integer
-handle. `ref` is a module **name** (looked up as `<name>.wasm` in the modules
-directory) or, if the server enables `allowUrlModules`, an `http(s)://` URL.
-`opts` is the optional [options table](opts.md) (`caps`, `args`, `env`, `fs`).
+handle. `ref` selects the module source by scheme (see
+[Module references](#module-references) below). `opts` is the optional
+[options table](opts.md) (`caps`, `args`, `env`, `fs`).
 
 ```lua
-local h = wasm.instantiate("sqlite3", { caps = { "wasi" } })
+local h = wasm.instantiate("file://sqlite3", { caps = { "wasi" } })
+-- or pull a digest-verified build from a registry:
+-- local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
 ```
 
 Raises a Lua error if the module can't be resolved, fails to compile/instantiate,
@@ -132,9 +134,9 @@ rebooted.)
 ### `wasm.run(ref [, opts])` → `ok, result`
 
 Runs a command (run-to-completion) module **off-thread** on a worker pool and
-**yields** the Lua coroutine until the module exits. `ref` is a module name or URL
-(as for `instantiate`). `opts` is the [options table](opts.md), and for mode B may
-include `timeout` (seconds).
+**yields** the Lua coroutine until the module exits. `ref` selects the module
+source by scheme (see [Module references](#module-references)). `opts` is the
+[options table](opts.md), and for mode B may include `timeout` (seconds).
 
 Returns two values:
 
@@ -151,7 +153,7 @@ Returns two values:
   computer"`, `"timeout"`, or an internal error message.
 
 ```lua
-local ok, res = wasm.run("mp3dec", {
+local ok, res = wasm.run("file://mp3dec", {
   args    = { "mp3dec", "/song.mp3", "/song.wav" },
   fs      = "media",
   timeout = 30,
@@ -168,3 +170,39 @@ end
     `wasm_done` event when the job completes and resumes your coroutine with the
     result. You do not handle the event yourself — `wasm.run` looks like a normal
     blocking call that returns when the module finishes.
+
+---
+
+## Module references
+
+The `ref` accepted by `wasm.instantiate` and `wasm.run` dispatches purely on its
+scheme:
+
+| Ref form | Source | Enabled by |
+|----------|--------|-----------|
+| `file://<name>` | local module `<config>/wasm-modules/<name>.wasm` (the `.wasm` is optional; path traversal is rejected) | always (governed by `modulesDir`) |
+| `http://…` / `https://…` | downloaded once and cached on disk | `allowUrlModules: true` |
+| `oci://<registry>/<repo>:<tag>` | anonymous OCI registry pull, **content-digest verified** | `allowOciModules: true` + registry in `ociRegistryAllow` |
+| `oci://<registry>/<repo>@sha256:<digest>` | OCI pull pinned by manifest digest | same as above |
+| `<registry>/<repo>:<tag>` (no scheme) | sugar for `oci://…` | same as above |
+
+A bare name with no scheme that does not parse as a valid
+`registry/repo[:tag|@digest]` is an error — local modules **must** use
+`file://`.
+
+### OCI pulls
+
+OCI references are content-addressed: wasm-cc fetches the manifest, selects the
+`application/wasm` layer, downloads the blob, and **verifies `sha256(bytes)`
+against the layer digest** before running it (a mismatch is a hard error). Only
+anonymous public pulls are supported (no credentials, no private repos). The
+registry allowlist (`ociRegistryAllow`) uses the same host-pattern matcher as
+`httpAllow` (e.g. `"ghcr.io"`, `"*.ghcr.io"`, `"*"`; empty list denies all).
+
+```lua
+-- digest-verified pull from ghcr.io (requires allowOciModules + ociRegistryAllow)
+local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
+```
+
+To publish a module for this, push a single `application/wasm` layer, e.g.
+`oras push ghcr.io/you/mod:1.0 mod.wasm:application/wasm`.

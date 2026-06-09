@@ -43,7 +43,13 @@ public final class WasmCcConfig {
     public String modulesDir = "wasm-modules";
     /** Allow {@code http(s)://} module references (downloaded + cached). */
     public boolean allowUrlModules = false;
-    /** Max module size in bytes (name lookups + URL downloads). */
+    /** Allow {@code oci://} (and no-scheme {@code <registry>/<repo>:<tag>}) module
+     *  references: anonymous public pulls from an OCI registry, digest-verified. */
+    public boolean allowOciModules = false;
+    /** Allowlist (host[:port] patterns, same matcher as {@link #httpAllow}) for OCI
+     *  registries; empty = deny all. e.g. {@code ["ghcr.io", "*.ghcr.io"]}. */
+    public List<String> ociRegistryAllow = List.of();
+    /** Max module size in bytes (file lookups + URL downloads + OCI blobs). */
     public long maxModuleBytes = 64L * 1024 * 1024;
 
     // --- capabilities ---
@@ -91,6 +97,7 @@ public final class WasmCcConfig {
         if (modulesDir == null || modulesDir.isBlank()) modulesDir = "wasm-modules";
         if (defaultCaps == null) defaultCaps = List.of("wasi");
         if (httpAllow == null) httpAllow = List.of();
+        if (ociRegistryAllow == null) ociRegistryAllow = List.of();
         return this;
     }
 }

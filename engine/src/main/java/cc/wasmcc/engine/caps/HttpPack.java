@@ -95,7 +95,7 @@ public final class HttpPack {
      * {@code :port}); a leading {@code *.} matches subdomains; {@code *} matches
      * anything. Empty allowlist denies everything.
      */
-    static boolean allowed(String url, List<String> allow) {
+    public static boolean allowed(String url, List<String> allow) {
         if (allow == null || allow.isEmpty()) {
             return false;
         }

@@ -39,7 +39,7 @@ WASM calls run to completion on their thread (Chicory has no mid-call yield), so
 
 ```lua
 -- mode A: raw WebAssembly API ------------------------------------------------
-local h = wasm.instantiate("sqlite", { caps = {"wasi"} })  -- name in wasm-modules/, or https:// URL
+local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = {"wasi"} })  -- OCI pull (digest-verified)
 local ptr = wasm.alloc(h, 16)
 local namePtr = wasm.allocCString(h, ":memory:")
 local ppDb = wasm.allocPtr(h)
@@ -51,7 +51,7 @@ local text = wasm.readCString(h, wasm.call(h, "sqlite3_column_text", stmt, 0))
 wasm.close(h)
 
 -- mode B: off-thread command run ---------------------------------------------
-local ok, res = wasm.run("ffmpeg", {                       -- yields until done
+local ok, res = wasm.run("file://ffmpeg", {                -- yields until done
   args = { "-i", "song.mp3", "song.wav" },                 -- argv
   fs   = "media",                                          -- mount <computer>/media at "/"
   timeout = 60,
@@ -68,6 +68,18 @@ if ok then print(res.exit, res.stdout) end                 -- then read song.wav
 **`opts`:** `caps` (array of `"wasi"`/`"fs"`/`"http"`), `fs` (sub-dir of the
 computer's disk to mount at `/`), `args` (argv), `env` (table), `timeout` (seconds,
 mode B).
+
+**Module `ref`s** dispatch by scheme:
+
+| Ref | Source |
+|-----|--------|
+| `file://<name>` | local `<config>/wasm-modules/<name>.wasm` (`.wasm` optional) |
+| `http://…` / `https://…` | downloaded + cached (needs `"allowUrlModules": true`) |
+| `oci://<registry>/<repo>:<tag>` or `…@sha256:<digest>` | anonymous OCI pull, digest-verified (needs `"allowOciModules": true` + the registry in `"ociRegistryAllow"`) |
+| `<registry>/<repo>:<tag>` (no scheme) | sugar for `oci://` |
+
+OCI pulls are content-addressed: the bytes are verified against the layer's
+`sha256` digest, so a tag/digest ref can't silently serve different code.
 
 ## Examples
 
@@ -91,7 +103,7 @@ extern int  http_read(char *dst, int cap);        // copies body into dst
 
 ```lua
 -- CC side
-local ok, res = wasm.run("fetcher", {
+local ok, res = wasm.run("file://fetcher", {
   caps    = { "wasi", "http" },
   args    = { "fetcher", "https://api.example.com/status.json" },
   timeout = 30,
@@ -115,7 +127,7 @@ computer's `media` folder and a speaker on its side:
 
 ```lua
 local function run(mod, ...)
-  local ok, res = wasm.run(mod, { args = { mod, ... }, fs = "media", timeout = 120 })
+  local ok, res = wasm.run("file://" .. mod, { args = { mod, ... }, fs = "media", timeout = 120 })
   assert(ok and res.exit == 0, mod .. " failed: " .. tostring(ok and res.stderr or res))
 end
 

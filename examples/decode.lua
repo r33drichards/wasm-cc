@@ -3,7 +3,7 @@
 -- "media" folder. wasm.run yields the coroutine until the decode finishes, so it
 -- never stalls the server tick even for a long file.
 
-local ok, res = wasm.run("mp3dec", {
+local ok, res = wasm.run("file://mp3dec", {
   args    = { "mp3dec", "/song.mp3", "/song.wav" }, -- argv; "/" is the media mount
   fs      = "media",                                -- mount <computer>/media at "/"
   timeout = 30,

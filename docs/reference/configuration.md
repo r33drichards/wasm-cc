@@ -28,9 +28,11 @@ Derived from `mod/src/main/java/cc/wasmcc/mod/WasmCcConfig.java`.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `modulesDir` | string | `"wasm-modules"` | Directory (under the config dir) of named modules, looked up as `<name>.wasm`. |
+| `modulesDir` | string | `"wasm-modules"` | Directory (under the config dir) of local modules, looked up as `<name>.wasm` for `file://<name>` refs. |
 | `allowUrlModules` | boolean | `false` | Allow `http(s)://` module references (downloaded and cached). |
-| `maxModuleBytes` | long | `67108864` (64 MiB) | Max module size in bytes, for name lookups and URL downloads (minimum `1024`). |
+| `allowOciModules` | boolean | `false` | Allow `oci://` (and no-scheme `<registry>/<repo>:<tag>`) module references — anonymous, digest-verified pulls from an OCI registry. |
+| `ociRegistryAllow` | array of strings | `[]` | Allowlist (host / `host:port` patterns, same matcher as `httpAllow`) of OCI registries. Empty denies all. e.g. `["ghcr.io", "*.ghcr.io"]`. |
+| `maxModuleBytes` | long | `67108864` (64 MiB) | Max module size in bytes — local lookups, URL downloads, and OCI blobs (minimum `1024`). |
 
 ### Capabilities
 
@@ -50,15 +52,23 @@ Derived from `mod/src/main/java/cc/wasmcc/mod/WasmCcConfig.java`.
   "maxInstancesPerComputer": 16,
   "modulesDir": "wasm-modules",
   "allowUrlModules": false,
+  "allowOciModules": false,
+  "ociRegistryAllow": ["ghcr.io"],
   "maxModuleBytes": 67108864,
   "defaultCaps": ["wasi"],
   "httpAllow": ["api.example.com", "*.example.com"]
 }
 ```
 
+Module `ref`s dispatch by scheme — `file://<name>` (local), `http(s)://…`
+(needs `allowUrlModules`), and `oci://<registry>/<repo>:<tag>` (needs
+`allowOciModules` + the registry in `ociRegistryAllow`). See
+[Module references](lua-api.md#module-references).
+
 ## Related directories
 
 Alongside `wasm-cc.json`, under the config dir:
 
 - `wasm-modules/` (configurable via `modulesDir`) — your named `.wasm` modules.
-- `wasm-cache/` — the download cache for URL modules (when `allowUrlModules` is on).
+- `wasm-cache/` — the on-disk cache for URL downloads and OCI blobs (the latter
+  keyed by content digest; `oci-<digest>.wasm`).

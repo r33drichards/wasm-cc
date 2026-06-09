@@ -17,13 +17,13 @@ options table. All fields are optional. Derived from `decodeOpts` /
 Mode A — just capabilities:
 
 ```lua
-local h = wasm.instantiate("sqlite3", { caps = { "wasi" } })
+local h = wasm.instantiate("file://sqlite3", { caps = { "wasi" } })
 ```
 
 Mode B — argv, a disk mount, and a timeout:
 
 ```lua
-local ok, res = wasm.run("mp3dec", {
+local ok, res = wasm.run("file://mp3dec", {
   args    = { "mp3dec", "/song.mp3", "/song.wav" },
   fs      = "media",
   timeout = 30,
@@ -33,7 +33,7 @@ local ok, res = wasm.run("mp3dec", {
 Mode B — networking with environment variables:
 
 ```lua
-local ok, res = wasm.run("fetcher", {
+local ok, res = wasm.run("file://fetcher", {
   caps = { "wasi", "http" },
   args = { "fetcher", "https://api.example.com/status.json" },
   env  = { TOKEN = "abc123" },

@@ -44,9 +44,10 @@
           default = pkgs.mkShell {
             # jdk21 + gradle build the engine/mod; make/curl/unzip/wabt build the
             # wasm test fixtures (tiny C fixtures, sqlite shell, dr_mp3 decoder) via
-            # wasi-sdk; sox+lame synthesize the sample.mp3 the decode IT consumes.
+            # wasi-sdk; sox+lame synthesize the sample.mp3 the decode IT consumes;
+            # oras pushes the sqlite wasm module to an OCI registry (make publish-sqlite).
             packages = [ pkgs.jdk21 pkgs.gradle pkgs.gnumake pkgs.curl pkgs.unzip
-                         pkgs.wabt pkgs.sox pkgs.lame ];
+                         pkgs.wabt pkgs.sox pkgs.lame pkgs.oras ];
             WASI_SDK_PATH = "${wasiSdk}";
             JAVA_HOME = "${pkgs.jdk21}";
           };
