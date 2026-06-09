@@ -29,7 +29,7 @@ resources: fixtures sqlite mp3
 #   nix develop -c make publish-sqlite                 # -> :0.1.0
 #   nix develop -c make publish-sqlite OCI_TAG=0.2.0   # custom tag
 OCI_REPO ?= ghcr.io/r33drichards/sqlite
-OCI_TAG  ?= 0.1.0
+OCI_TAG  ?= 0.1.1
 publish-sqlite: $(TESTRES)/sqlite3.wasm
 	cd $(TESTRES) && oras push $(OCI_REPO):$(OCI_TAG) sqlite3.wasm:application/wasm
 

@@ -41,7 +41,7 @@ handle. `ref` selects the module source by scheme (see
 ```lua
 local h = wasm.instantiate("file://sqlite3", { caps = { "wasi" } })
 -- or pull a digest-verified build from a registry:
--- local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
+-- local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.1", { caps = { "wasi" } })
 ```
 
 Raises a Lua error if the module can't be resolved, fails to compile/instantiate,
@@ -201,7 +201,7 @@ registry allowlist (`ociRegistryAllow`) uses the same host-pattern matcher as
 
 ```lua
 -- digest-verified pull from ghcr.io (requires allowOciModules + ociRegistryAllow)
-local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
+local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.1", { caps = { "wasi" } })
 ```
 
 To publish a module for this, push a single `application/wasm` layer, e.g.

@@ -39,7 +39,7 @@ WASM calls run to completion on their thread (Chicory has no mid-call yield), so
 
 ```lua
 -- mode A: raw WebAssembly API ------------------------------------------------
-local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = {"wasi"} })  -- OCI pull (digest-verified)
+local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.1", { caps = {"wasi"} })  -- OCI pull (digest-verified)
 local ptr = wasm.alloc(h, 16)
 local namePtr = wasm.allocCString(h, ":memory:")
 local ppDb = wasm.allocPtr(h)

@@ -58,7 +58,7 @@ A module `ref` dispatches by scheme:
 |-----|--------|-------------|
 | `file://sqlite3` | local `<config>/wasm-modules/sqlite3.wasm` | — (used by this harness) |
 | `http(s)://…` | downloaded + cached | `"allowUrlModules": true` |
-| `oci://ghcr.io/r33drichards/sqlite:0.1.0` | anonymous OCI pull, digest-verified | `"allowOciModules": true` + `"ociRegistryAllow": ["ghcr.io"]` |
+| `oci://ghcr.io/r33drichards/sqlite:0.1.1` | anonymous OCI pull, digest-verified | `"allowOciModules": true` + `"ociRegistryAllow": ["ghcr.io"]` |
 
 The staged [`examples/sqlite_disk.lua`](../examples/sqlite_disk.lua) and
 [`examples/sqlite.lua`](../examples/sqlite.lua) default to the **`oci://`** form,
@@ -124,7 +124,7 @@ Computer is driven server-side.)
    # replace 0 with your computer's ID
    cp examples/sqlite_disk.lua e2e/data/world/computercraft/computer/0/sqlite_disk.lua
    # this offline harness ships the module locally, so use the file:// ref:
-   sed -i 's#oci://ghcr.io/r33drichards/sqlite:0.1.0#file://sqlite3#' \
+   sed -i 's#oci://ghcr.io/r33drichards/sqlite:0.1.1#file://sqlite3#' \
      e2e/data/world/computercraft/computer/0/sqlite_disk.lua
    ```
 

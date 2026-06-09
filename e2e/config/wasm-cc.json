@@ -6,7 +6,7 @@
   "maxInstancesPerComputer": 16,
   "modulesDir": "wasm-modules",
   "allowUrlModules": false,
-  "allowOciModules": false,
+  "allowOciModules": true,
   "ociRegistryAllow": ["ghcr.io"],
   "maxModuleBytes": 67108864,
   "defaultCaps": ["wasi"],

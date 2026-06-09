@@ -24,7 +24,7 @@ class OciPullIT {
     @Test
     void pullsRealWasmFromGhcr(@TempDir Path cache) throws Exception {
         String ref = System.getenv().getOrDefault("WASMCC_OCI_IT_REF",
-            "ghcr.io/r33drichards/sqlite:0.1.0");
+            "ghcr.io/r33drichards/sqlite:0.1.1");
         OciResolver.Ref parsed = OciResolver.tryParse(ref);
         assertNotNull(parsed, () -> "WASMCC_OCI_IT_REF did not parse as an OCI ref: " + ref);
 

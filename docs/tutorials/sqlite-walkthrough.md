@@ -40,7 +40,7 @@ SQLite is pure in-memory compute here, so the `wasi` capability is all it needs.
     pull a published, digest-verified build straight from an OCI registry:
 
     ```lua
-    local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
+    local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.1", { caps = { "wasi" } })
     ```
 
     This needs `"allowOciModules": true` and `"ociRegistryAllow": ["ghcr.io"]` in

@@ -16,7 +16,7 @@
 local SQLITE_OK, SQLITE_ROW, SQLITE_DONE = 0, 100, 101
 local COL_INT, COL_FLOAT, COL_NULL = 1, 2, 5
 
-local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
+local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.1", { caps = { "wasi" } })
 
 local function open()
   local namePtr = wasm.allocCString(h, ":memory:")
