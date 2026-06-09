@@ -1,11 +1,22 @@
 -- sqlite via the raw WebAssembly API, on a ComputerCraft computer.
 -- The CC analogue of the mcp-v8 sqlite example: same sqlite3.wasm module, driven
--- through `wasm` (mode A, synchronous). Put sqlite3.wasm in <config>/wasm-modules/.
+-- through `wasm` (mode A, synchronous).
+--
+-- This loads the module straight from an OCI registry (digest-verified). For that
+-- to work, wasm-cc.json must enable it:
+--     "allowOciModules": true,
+--     "ociRegistryAllow": ["ghcr.io"]
+-- The host fetches the module itself, so only the "wasi" cap is needed here (no
+-- "http" cap). The ghcr.io/r33drichards/sqlite artifact is published by the
+-- release workflow (or manually via `make publish-sqlite`); until the first `v*`
+-- tag is pushed this ref will not resolve yet -- meanwhile you can use the local
+-- form instead: wasm.instantiate("file://sqlite3", ...) with sqlite3.wasm in
+-- <config>/wasm-modules/.
 
 local SQLITE_OK, SQLITE_ROW, SQLITE_DONE = 0, 100, 101
 local COL_INT, COL_FLOAT, COL_NULL = 1, 2, 5
 
-local h = wasm.instantiate("sqlite3", { caps = { "wasi" } })
+local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi" } })
 
 local function open()
   local namePtr = wasm.allocCString(h, ":memory:")

@@ -47,7 +47,7 @@ guest memory.
 ## 3. Run it off-thread with the `http` cap
 
 ```lua
-local ok, res = wasm.run("fetcher", {
+local ok, res = wasm.run("file://fetcher", {
   caps    = { "wasi", "http" },
   args    = { "fetcher", "https://api.example.com/status.json" },
   timeout = 30,

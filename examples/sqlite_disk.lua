@@ -11,7 +11,11 @@
 --     (Caps.assemble -> WasiOptions.withDirectory("/", fsDir)).
 --   * So sqlite3_open("/app.sqlite") writes <id>/sql/app.sqlite on the host disk.
 --
--- Put sqlite3.wasm in <config>/wasm-modules/sqlite3.wasm (named module "sqlite3").
+-- The module is pulled from an OCI registry (digest-verified); enable it in
+-- wasm-cc.json with "allowOciModules": true and "ociRegistryAllow": ["ghcr.io"].
+-- The artifact is published by the release workflow (or `make publish-sqlite`);
+-- before the first `v*` tag exists, use the local form instead: drop sqlite3.wasm
+-- in <config>/wasm-modules/ and call wasm.instantiate("file://sqlite3", ...).
 
 local SQLITE_OK, SQLITE_ROW, SQLITE_DONE = 0, 100, 101
 local COL_INT, COL_FLOAT, COL_NULL = 1, 2, 5
@@ -22,7 +26,7 @@ local FS_SUBDIR = "sql"
 
 -- Open a fresh sqlite instance with the fs cap, returning {h=handle, db=ptr}.
 local function open()
-  local h = wasm.instantiate("sqlite3", { caps = { "wasi", "fs" }, fs = FS_SUBDIR })
+  local h = wasm.instantiate("oci://ghcr.io/r33drichards/sqlite:0.1.0", { caps = { "wasi", "fs" }, fs = FS_SUBDIR })
   local namePtr = wasm.allocCString(h, DB_PATH)
   local ppDb = wasm.allocPtr(h)
   assert(wasm.call(h, "sqlite3_open", namePtr, ppDb) == SQLITE_OK, "open failed")

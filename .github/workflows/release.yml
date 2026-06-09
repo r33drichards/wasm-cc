@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  packages: write   # push the sqlite wasm module to ghcr.io (OCI)
 
 jobs:
   release:
@@ -45,6 +46,23 @@ jobs:
           mkdir -p dist
           cp mod/build/libs/mod.jar "dist/wasm-cc-${GITHUB_REF_NAME}.jar"
           ls -la dist
+
+      # Publish the sqlite wasm module to ghcr.io so the oci:// examples resolve.
+      # Built fresh here (make sqlite), pushed as a single application/wasm layer
+      # to :<tag-without-v> and :latest. Uses the workflow's built-in GITHUB_TOKEN.
+      - name: Build + publish sqlite.wasm to ghcr (retry transient 504s)
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for i in 1 2 3 4 5; do
+            nix develop -c make sqlite && break
+            echo "::warning::make sqlite attempt $i failed; retrying in 30s"; sleep 30
+          done
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "$GITHUB_TOKEN" | nix develop -c oras login ghcr.io -u "$GITHUB_USER" --password-stdin
+          nix develop -c make publish-sqlite OCI_TAG="$TAG"
+          nix develop -c make publish-sqlite OCI_TAG=latest
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

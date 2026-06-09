@@ -10,28 +10,36 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.List;
 
 /**
- * Turns a module reference into raw wasm bytes:
+ * Turns a module reference into raw wasm bytes. Dispatch is purely by scheme:
  * <ul>
- *   <li>a bare <b>name</b> ({@code "sqlite"} / {@code "sqlite.wasm"}) resolves to
- *       {@code <modulesDir>/<name>.wasm}, with path-traversal rejected; and</li>
- *   <li>an <b>{@code http(s)://} URL</b> is downloaded once and cached on disk
- *       (keyed by the SHA-256 of the URL), subject to a size cap.</li>
+ *   <li>{@code oci://<registry>/<repo>:<tag>} (or {@code …@sha256:<hex>}), and the
+ *       no-scheme sugar {@code <registry>/<repo>:<tag>}, pull from an OCI registry
+ *       with content-digest verification (see {@link OciResolver});</li>
+ *   <li>an {@code http(s)://} URL is downloaded once and cached on disk (keyed by
+ *       the SHA-256 of the URL), subject to a size cap;</li>
+ *   <li>{@code file://<name>} resolves to the local module
+ *       {@code <modulesDir>/<name>.wasm} (path-traversal rejected; {@code .wasm}
+ *       optional).</li>
  * </ul>
- * Downloading is opt-in ({@code allowUrl}) so a locked-down server can restrict
- * modules to a curated directory. Bytes are handed to {@link WasmHost#compile}
- * (which de-dups by content hash), so re-resolving the same module is cheap.
+ * URL downloads are opt-in ({@code allowUrl}) and OCI pulls are opt-in
+ * ({@code allowOci} + an allowlist) so a locked-down server can restrict modules
+ * to a curated directory. Bytes are handed to {@link WasmHost#compile} (which
+ * de-dups by content hash), so re-resolving the same module is cheap.
  */
 public final class ModuleResolver {
 
-    private final Path modulesDir;   // nullable (name lookups disabled if null)
-    private final Path cacheDir;     // nullable (URL caching disabled if null)
+    private final Path modulesDir;   // nullable (file:// lookups disabled if null)
     private final long maxBytes;
     private final boolean allowUrl;
     private final HttpClient http;
+    private final Path cacheDir;     // nullable (URL caching disabled if null)
+    private final OciResolver oci;
 
-    public ModuleResolver(Path modulesDir, Path cacheDir, long maxBytes, boolean allowUrl) {
+    public ModuleResolver(Path modulesDir, Path cacheDir, long maxBytes, boolean allowUrl,
+            boolean allowOci, List<String> ociRegistryAllow) {
         this.modulesDir = modulesDir;
         this.cacheDir = cacheDir;
         this.maxBytes = maxBytes;
@@ -40,6 +48,7 @@ public final class ModuleResolver {
             .connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
+        this.oci = new OciResolver(cacheDir, maxBytes, allowOci, ociRegistryAllow);
     }
 
     public byte[] resolve(String ref) throws IOException {
@@ -50,7 +59,22 @@ public final class ModuleResolver {
         if (lower.startsWith("http://") || lower.startsWith("https://")) {
             return resolveUrl(ref);
         }
-        return resolveName(ref);
+        if (lower.startsWith("file://")) {
+            return resolveName(ref.substring("file://".length()));
+        }
+        boolean explicitOci = lower.startsWith("oci://");
+        String body = explicitOci ? ref.substring("oci://".length()) : ref;
+        OciResolver.Ref parsed = OciResolver.tryParse(body);
+        if (parsed != null) {
+            return oci.resolve(parsed);
+        }
+        if (explicitOci) {
+            throw new IOException("invalid oci ref: " + ref
+                + " (expected oci://<registry>/<repo>:<tag> or @sha256:<digest>)");
+        }
+        throw new IOException("unknown module ref '" + ref
+            + "'; use file://<name> for a local module, http(s):// for a URL, "
+            + "or oci://<registry>/<repo>:<tag> for a registry pull");
     }
 
     private byte[] resolveName(String name) throws IOException {
@@ -114,7 +138,7 @@ public final class ModuleResolver {
     }
 
     /** Reads up to {@code cap} bytes; throws if the stream exceeds it. */
-    private static byte[] readCapped(InputStream in, long cap) throws IOException {
+    static byte[] readCapped(InputStream in, long cap) throws IOException {
         var out = new java.io.ByteArrayOutputStream();
         byte[] buf = new byte[64 * 1024];
         long total = 0;

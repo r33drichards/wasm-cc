@@ -16,9 +16,22 @@ SQLITE_URL = https://www.sqlite.org/2024/sqlite-amalgamation-$(SQLITE_VER).zip
 
 DRMP3_URL = https://raw.githubusercontent.com/mackron/dr_libs/da35f9d6c7374a95353fd1df1d394d44ab66cf01/dr_mp3.h
 
-.PHONY: resources fixtures sqlite mp3 clean e2e-setup
+.PHONY: resources fixtures sqlite mp3 clean e2e-setup publish-sqlite
 
 resources: fixtures sqlite mp3
+
+# --- publish the sqlite wasm module to an OCI registry --------------------
+# Push the built sqlite3.wasm to ghcr.io as a single application/wasm layer (the
+# media type OciResolver selects), so `wasm.instantiate("oci://ghcr.io/...")`
+# resolves. Requires `oras` and a prior `oras login ghcr.io`. The release
+# workflow runs this automatically on a `v*` tag.
+#
+#   nix develop -c make publish-sqlite                 # -> :0.1.0
+#   nix develop -c make publish-sqlite OCI_TAG=0.2.0   # custom tag
+OCI_REPO ?= ghcr.io/r33drichards/sqlite
+OCI_TAG  ?= 0.1.0
+publish-sqlite: $(TESTRES)/sqlite3.wasm
+	cd $(TESTRES) && oras push $(OCI_REPO):$(OCI_TAG) sqlite3.wasm:application/wasm
 
 # --- e2e harness ----------------------------------------------------------
 # Stage the built mod jar + sqlite3.wasm + config into e2e/data so the docker

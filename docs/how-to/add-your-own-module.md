@@ -50,16 +50,16 @@ Copy the `.wasm` into the server's modules directory:
 <config>/wasm-modules/<name>.wasm
 ```
 
-The `<name>` (without `.wasm`) is what you pass to `wasm.instantiate` /
-`wasm.run`. The directory name is configurable via `modulesDir` in
-[`wasm-cc.json`](../reference/configuration.md).
+You reference it as `file://<name>` (the `.wasm` is optional) in
+`wasm.instantiate` / `wasm.run`. The directory name is configurable via
+`modulesDir` in [`wasm-cc.json`](../reference/configuration.md).
 
 ## 4. Use it
 
 Mode A:
 
 ```lua
-local h = wasm.instantiate("mymod", { caps = { "wasi" } })
+local h = wasm.instantiate("file://mymod", { caps = { "wasi" } })
 print(wasm.call(h, "my_func", 21))
 wasm.close(h)
 ```
@@ -67,16 +67,26 @@ wasm.close(h)
 Mode B:
 
 ```lua
-local ok, res = wasm.run("mytool", { args = { "mytool", "--flag" }, timeout = 30 })
+local ok, res = wasm.run("file://mytool", { args = { "mytool", "--flag" }, timeout = 30 })
 print(ok, res and res.stdout)
 ```
 
-## Optional: load by URL
+## Optional: load by URL or from an OCI registry
 
-If the server enables `allowUrlModules` in
-[`wasm-cc.json`](../reference/configuration.md), you can pass an `http(s)://` URL
-as the `ref` instead of a name; the module is downloaded and cached. This is off
-by default.
+Besides `file://<name>`, the `ref` can name a remote source (both off by default):
+
+- **`http(s)://…`** — enable `allowUrlModules` in
+  [`wasm-cc.json`](../reference/configuration.md); the module is downloaded and
+  cached.
+- **`oci://<registry>/<repo>:<tag>`** (or the no-scheme sugar
+  `<registry>/<repo>:<tag>`, or an `@sha256:<digest>` pin) — enable
+  `allowOciModules` and list the registry in `ociRegistryAllow` (e.g.
+  `["ghcr.io"]`). The bytes are pulled anonymously and **verified against the
+  layer's content digest**, so the ref can't silently serve different code. To
+  publish your own module, push it as a single `application/wasm` layer, e.g.
+  with `oras push ghcr.io/you/mod:1.0 mod.wasm:application/wasm`.
+
+See [Module references](../reference/lua-api.md#module-references).
 
 ## See also
 

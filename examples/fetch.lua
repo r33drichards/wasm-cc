@@ -11,7 +11,7 @@
 --
 -- Run it off-thread (mode B) so a slow request never stalls the tick:
 
-local ok, res = wasm.run("fetcher", {
+local ok, res = wasm.run("file://fetcher", {
   caps    = { "wasi", "http" },
   args    = { "fetcher", "https://example.com/data.json" },
   timeout = 30,

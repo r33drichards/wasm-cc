@@ -100,8 +100,13 @@ public final class WasmLuaAPI implements ILuaAPI {
     // --- mode A: raw API ---------------------------------------------------
 
     /**
-     * {@code wasm.instantiate(ref [, opts])} → handle. {@code ref} is a module
-     * name (in the modules dir) or, if enabled, an {@code http(s)://} URL.
+     * {@code wasm.instantiate(ref [, opts])} → handle. {@code ref} dispatches by
+     * scheme: {@code file://<name>} = local module in the modules dir;
+     * {@code http(s)://<url>} = download (if {@code allowUrlModules});
+     * {@code oci://<registry>/<repo>:<tag>} (or the no-scheme sugar
+     * {@code <registry>/<repo>:<tag>}, or an {@code @sha256:<digest>} pin) = a
+     * digest-verified anonymous pull from an OCI registry (if
+     * {@code allowOciModules} and the registry is in {@code ociRegistryAllow}).
      * {@code opts}: {@code caps} (array of "wasi"/"fs"/"http"), {@code fs} (sub-dir
      * mounted at "/"), {@code args} (argv array), {@code env} (string→string).
      */

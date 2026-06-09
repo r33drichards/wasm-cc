@@ -23,7 +23,7 @@ real disk:
 
 ```lua
 local function run(mod, ...)
-  local ok, res = wasm.run(mod, { args = { mod, ... }, fs = "media", timeout = 120 })
+  local ok, res = wasm.run("file://" .. mod, { args = { mod, ... }, fs = "media", timeout = 120 })
   assert(ok and res.exit == 0, mod .. " failed: " .. tostring(ok and res.stderr or res))
 end
 

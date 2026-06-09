@@ -92,8 +92,8 @@ nix develop -c make resources
 Back on the computer:
 
 ```lua title="add.lua"
--- Instantiate the module by name (looked up in wasm-modules/).
-local h = wasm.instantiate("spike", { caps = { "wasi" } })
+-- Instantiate the local module (file://<name> looks up wasm-modules/<name>.wasm).
+local h = wasm.instantiate("file://spike", { caps = { "wasi" } })
 
 -- Call an export. wasm.call returns the first result as an integer.
 local sum = wasm.call(h, "add", 2, 3)

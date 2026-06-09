@@ -42,7 +42,8 @@ public final class WasmEngine {
         Path modulesDir = configDir.resolve(cfg.modulesDir);
         Path cacheDir = configDir.resolve("wasm-cache");
         ModuleResolver resolver = new ModuleResolver(
-            modulesDir, cacheDir, cfg.maxModuleBytes, cfg.allowUrlModules);
+            modulesDir, cacheDir, cfg.maxModuleBytes, cfg.allowUrlModules,
+            cfg.allowOciModules, cfg.ociRegistryAllow);
         WasmService service = new WasmService(host, cfg.workerThreads,
             cfg.maxAbandonedJobs, cfg.maxTimeoutSeconds * 1000L, cfg.maxJobsPerComputer);
         return new WasmEngine(host, resolver, service,
