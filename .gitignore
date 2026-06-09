@@ -13,3 +13,6 @@ fixtures/*.wasm
 
 # Third-party source drops fetched by the Makefile (sqlite amalgamation, etc.)
 third_party/
+
+# MkDocs build output (the docs site is built into site/, deployed by CI).
+site/

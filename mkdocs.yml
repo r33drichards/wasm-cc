@@ -1,0 +1,95 @@
+site_name: wasm-cc
+site_description: >-
+  Run arbitrary WebAssembly modules from ComputerCraft — a Fabric mod exposing a
+  raw WebAssembly API to Lua over the Chicory pure-JVM runtime.
+site_url: https://r33drichards.github.io/wasm-cc/
+site_author: r33drichards
+
+repo_name: r33drichards/wasm-cc
+repo_url: https://github.com/r33drichards/wasm-cc
+edit_uri: edit/master/docs/
+
+copyright: Copyright &copy; r33drichards
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - search.highlight
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/r33drichards/wasm-cc
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - tutorials/index.md
+      - Getting started: tutorials/getting-started.md
+      - SQLite walkthrough: tutorials/sqlite-walkthrough.md
+  - How-to guides:
+      - how-to/index.md
+      - Run a module on disk (fs cap): how-to/run-on-disk-fs.md
+      - Allowlist an http host: how-to/allowlist-http-host.md
+      - Convert MP3 to MIDI: how-to/mp3-to-midi.md
+      - Add your own wasm module: how-to/add-your-own-module.md
+  - Reference:
+      - reference/index.md
+      - Lua API (wasm.*): reference/lua-api.md
+      - opts table: reference/opts.md
+      - Capabilities: reference/capabilities.md
+      - Configuration (wasm-cc.json): reference/configuration.md
+      - Build & Make targets: reference/build.md
+      - Project layout: reference/project-layout.md
+  - Explanation:
+      - explanation/index.md
+      - Two execution modes: explanation/execution-modes.md
+      - Capability packs & auto-stub: explanation/capability-packs.md
+      - Lineage (mcp-v8 & picat-cc): explanation/lineage.md
